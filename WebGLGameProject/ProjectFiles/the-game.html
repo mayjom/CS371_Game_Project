@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute  vec4 vPosition;
+attribute  vec3 vNormal;
+attribute  vec2 vTexCoord;
+
+uniform int texture_flag;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform vec4 lightPosition;
+uniform float shininess;
+
+varying vec4 fColor;
+varying vec2 fTexCoord;
+
+void main() 
+{
+  if (texture_flag == 0) {
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+     
+    //Light that moves with hero
+    vec3 light = (modelViewMatrix * lightPosition).xyz;
+ 
+    // Normalized vector from pos to light
+ 
+    vec3 L = normalize( light - pos );
+ 
+    // Next two lines compute halfway vector
+     
+    vec3 E = normalize( pos );
+    vec3 H = normalize( L + E );
+     
+    vec4 NN = vec4(vNormal,0);
+ 
+    // Transform vertex normal into eye coordinates
+        
+    vec3 N = normalize( (modelViewMatrix*NN).xyz);
+ 
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+ 
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+ 
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+     
+    if( dot(L, N) < 0.0 ) {
+      specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+    fColor = ambient + diffuse + specular;
+     
+    fColor.a = 1.0;
+  }
+  else
+    {
+      gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+      fTexCoord = vTexCoord;
+    }
+} 
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+uniform highp int texture_flag;	// Necessary to be compatible with uniform in fragment shader
+uniform sampler2D texture;
+
+varying vec4 fColor;
+varying vec2 fTexCoord;
+
+void main()
+{
+  if (texture_flag == 0) {
+    gl_FragColor = fColor;
+  } else {
+    gl_FragColor = texture2D( texture, fTexCoord );
+  }
+}
+</script>
+
+<!--Ed Angel WebGL support libraries-->
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="../Common/webgl-debug.js"></script>
+<script type="text/javascript" src="sphere.js"></script>
+<script type="text/javascript" src="gemMesh.js"></script>
+<script type="text/javascript" src="mummyMesh.js"></script>
+<script type="text/javascript" src="Arena.js"></script>
+<script type="text/javascript" src="GameObject.js"></script>
+<script type="text/javascript" src="Hero.js"></script>
+<script type="text/javascript" src="ThingSeeking.js"></script>
+<script type="text/javascript" src="Villain.js"></script>
+<script type="text/javascript" src="the-game.js"></script>
+
+<body>
+<style>
+body{
+	   background-image: url("pyramidTex1024.png");
+}
+#gl-canvas{
+	   border-width: 8px;
+	   border-style: outset;
+	   border-color: #B32D00;
+}
+#manual{
+	   width: 1100px;
+}
+#scoreboard{
+	   width: 350px;
+	   font-size: 1.5em;
+}
+#status_box{
+	   width: 560px;
+	   font-size: 1.5em;
+}
+.box{
+	   border-width: 8px;
+	   border-style: outset;
+	   border-color: #B32D00;
+	   color: #40FF00;
+	   background-color: #333333;
+	   font-size: 1.2em;
+}
+</style>
+<!-- The game manual -->
+<p class = "box" id = "manual">
+Grab as many of the mummy's gems as you can! The one with the most gems when time
+runs out is the winner!
+</br>
+The rules:
+</br>
+- When the player or the mummy touch a gem, they get 1 point and the gem respawns at
+  another random spot in the arena
+</br>
+- When the mummy touches the player, the player gets teleported to 
+  a random spot in the arena, and the mummy steals one point from the player
+</br>
+- When either the player or the mummy hits a wall, they rebound off the wall
+  according the physical reflection model
+</br>
+The controls:
+</br>
+A - Turn left
+</br>
+D - Turn right
+</br>
+W - Move forward
+</br>
+S - Move backward
+</br>
+Q - Teleport to the center of the arena *AT THE COST OF ONE POINT**
+</br>
+*Use in case you get stuck outside the wall, or to cheat the mummy 
+when you have nothing to lose...*
+</br>
+E - Pause the game; all objects will stop moving, timer will 
+stop until G is pressed again
+</br>
+R - Reset the game; all game objects spawn in random locations, 
+the scores reset to 0, and the timer resets
+</p>
+<canvas id="gl-canvas" width="1000" height="625">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<p class = "box" id = "scoreboard">
+<label>Player Score: </label>
+<label id="playerScore">0</label>
+<label>Mummy Score: <label>
+<label id="mummyScore">0<label>
+</p>
+<p class = "box" id="status_box">
+<label>Game Status: <label>
+<label id = "game_status">Unpaused</label>
+<label>Timer: <label>
+<label id = "timer">N/A</label>
+</p>
+</body>
+</html>
