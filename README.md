@@ -1,2 +1,2 @@
 # CS371_Game_Project
-3D graphics game project
+3D graphics game project (Work-in-progress)
